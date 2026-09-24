@@ -1,0 +1,1909 @@
+FORMAT: 1A
+HOST: https://mpi
+
+# MPI
+
+Market Place Integrator API.
+Collection of endpoints for communication with MPI Service. MPI service mediates listing of your products and order processing on different sales channels.
+
+## Change Log
+
+|Date       |Change                                                                                            |
+|-----------|--------------------------------------------------------------------------------------------------|
+|31.07.2026 | Added new orders V2 endpoints (*Get Orders v2*, *Get order v2*, *Update Orders v2*) and old ones marked as deprecated.|
+|06.05.2026 | Added attribute *paymentId* to *Get Orders* (when using the *extraFields parameter*).             |
+|10.03.2026 | Added new endpoint `POST /v1/orders/documents/upload` for uploading order invoices and credit notes via partner API using `multipart/form-data`, with order identification by `orderId` and/or `originalId`.|
+|23.02.2026 | Added new endpoint `POST /v1/products/detailed-summary` for paginated product summaries with filtering by `saleChannelCodes` and `productIds`.|
+|12.11.2025 | Added attribute *b2bPrice* (with value, vat, currency) to *ProductAvailability*.            |
+|06.10.2025 | Added attribute *carrier.note* to *Get Orders* (when using the *extraFields parameter*)             |
+|30.05.2025 | The itemId property has been added to allow setting *serial numbers* for order items.            |
+|06.02.2025 | The “carrier identification” list has been significantly expanded with new carriers.             |
+|27.09.2024 | Location header added to asynchronous 202 response on /v1/orders/orderId/labels endpoint.        |
+|22.07.2024 | Added attribute *billingAddress* to *Get Orders* (when using the *extraFields parameter*)        |
+|03.05.2024 | Added *General rule*s to *Introduction section*                                                  |
+|10.04.2024 | Added attribute *globalHandingTime* to Update Product Availability & price endpoint              |
+|25.01.2024 | Added attribute *minimumPrice* to *SalesChannelProductAvailability* object                       |
+|22.01.2024 | Added attribute *suggestedExpeditionTimestamp* to *OrderDetail* object                           |
+|04.12.2023 | Added *serial numbers* property to order endpoints for ability to get, set or update order serial numbers |
+|15.11.2023 | Added attribute *handingTime* to salesChannels in Update Product Availability & price endpoint   |
+|23.08.2023 | Expanded description on order status flow. 
+|06.03.2023 | Update on *Get Orders* filter, i.e. it is now possible to filter orders based on multiple partnerIds, originalIds and sources.|
+|22.02.2023 | New field *cancelReason* on Orders. When canceling orders you should provide cancel reason.      |
+|20.02.2023 | New carrier.type 'PARCEL_BOX' has been added to type ENUM. It will be used to differentiate between delivery to parcel shops and autamated boxes|
+|31.01.2023 | Added endpoint allowing print multiple labels merged into 1 file "*Print existing shipping labels into one file*" |
+|31.01.2023 | Added endpoint allowing batch request to generate labels *Request Shipping Labels - batch* 
+|10.01.2023 | Added filtration parameters *partnerId, originalId, source* to *GetOrders* endpoint              |
+|10.01.2023 | Added endpoint *GetOrder* to allow query detail of one order by id                               |
+|10.01.2023 | Added attrribute *shippingListUrl* to response body of get order/orders endpoints                |
+|28.11.2022 | Added attributes *suggestedExpeditionDate* to *OrderDetail* object                               |
+|07.11.2022 | Added attributes *unitPriceWithoutCommission* to items *invoiceRequired* to the root of order body in Get Orders endpoint|
+|26.10.2022 | Added new codes into salesChannelCode and source ENUM                                            |
+|26.10.2022 | Added *orderDeliveryType* to OrderDetail object                                                  |
+|13.10.2022 | Added information about customer price and commission to items in Get Orders endpoint            |
+|31.05.2022 | New endpoint for cross dock parcel tracking was added                                            |
+|23.05.2022 | Added optional query parameter *returnOnlyUrl* to generate and get shipping labels endpoints that can be used to specify than only url to generated file will be returned instead of actual PDF file. In this case http status will be 201 instead of 200|
+|25.04.2022 | 'SI_POST' added as new carrier identification                                                    |
+|21.04.2022 | Possibility to specify package weight and dimensions when generating shipping labels only by single attribute *size*, e.g. SM or XL  |
+|04.04.2022 | Labels [GET] endpoint added (print without regenerating)                                         |
+|01.02.2022 | Possible error responses descriptions added                                                      |
+|15.03.2022 | format of order id changed to number                                                             |
+|19.01.2022 | Source changed to ENUM in 'get product summary' and 'get orders' endpoints                       |
+|07.01.2022 | Order status flow logic diagram added                                                            |
+|17.12.2021 | New endpoint for product summary                                                                 |
+|07.12.2021 | New information entities about errors added to update endpoints (products & orders)              |
+|11.21.2021 | Errors during batch-update will now provide a status code 400. (valid products/orders are updated|
+|08.23.2021 | ENUM added for identification attribute in carrier and parcelShop objects)                       |
+|07.06.2021 | Possible error when trying to update orders added (the EP no longer fails upon validation error) |
+|16.05.2021 | Expanded information about labels creation                                                       |
+|09.05.2021 | Request expedition date on order added                                                           |
+|09.05.2021 | Possible error when trying to update non-existing product added                                  |
+|26.01.2021 | Partner Webhook added                                                                            |
+|25.11.2020 | New order status 'RESERVATION' was added                                                         |
+|09.10.2020 | Add new props to OrderDetail object - add errorMessage, updateStatus and readyToReturn           |
+|09.10.2020 | Fix PackageDetail object - add volume 2                                                          |
+|09.12.2020 | 'Update Orders' has been changed from 'v1/orders/' to v1/orders/batch-update                     |
+|09.12.2020 | Order ENUMS were capitalised ('open' is now 'OPEN' etc.)                                         |
+|09.12.2020 | Object PackageDetail has been replaced with list of Packages                                     |
+|09.12.2020 | New attribute 'ShippingLabelsPrintMethod' was added into Order management                        |
+
+
+
+## Error Handling
+
+### HTTP Response codes
+
+API uses the standard HTTP response codes for HTTP requests.
+
+| Response Status Code | Description                                                                                                                                                 |
+|----------------------|----------------------------|
+| 200                  | OK                         |
+| 201                  | Created                    |
+| 400                  | Bad Request                |
+| 401                  | Unauthorized               |
+| 403                  | Forbidden                  |
+| 404                  | Not Found                  |                                                                                                                                                                                                                                      ||
+| 405                  | Method not allowed         |
+| 415                  | Unsupported media type     |
+| 422                  | Unprocessable Entity       |
+| 500                  | Internal server error      |
+| 503                  | Service unavailable        |
+
+### General errors
+
+The standard response body for general server errors is:
+
+```
+{
+  "httpStatus": 500,
+  "code": "GENERAL_HTTP_ERROR",
+  "codeDescription": "Error is not probably caused by business logic but by general HTTP 500 (Internal Server Error), etc...",
+  "details": "Description of the problem"
+}
+```
+
+
+## Authentication
+
+Bearer (token) authentication is used on all endpoints. You will receive your token from our representant.
+
+Invalid authentication response body:
+
+```
+{
+    "timestamp": "2022-02-01T13:06:10.505+00:00",
+    "path": "/v1/orders",
+    "status": 401,
+    "error": "Unauthorized",
+    "message": "Authentication was not done or is invalid.",
+    "requestId": "119e2bfa-1"
+}
+```
+## General rules
++ If any attribute is null, this attribute is not included in the response.
+
+## Group Products
+
+## Product Summary [/v1/products/summary{?source}]
+
+### Get Product Summary [GET]
+
+Used to get brief product summary listed in MPI.
+
++ Parameters
+    + source: `MALL.CZ` (string, optional) - eshop, if not specified, every eshop is taken into consideration, support multiple eshop filters, each query parameter should be defined separately
+
++ Request
+    + Headers
+    
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+    
++ Response 200 (application/json)
+    + Attributes (array[ProductSummary])
+
+## Product Availability, Prices & Handling Time [/v1/products/availability]
+
+### Update Product Availability, Prices & Handling Time [PUT]
+
+Use to update on hand quantity, price, minimum price, vat, B2B price, B2B price vat, B2B price currency & handling time.
++ Price and minimum price need to be updated individually for each sales channel.
++ B2B Price need to be updated globally at the product level.
++ When updating on hand, you can use globalOnHand, onHand for individual salesChannels or combination.
+    + GlobalOnHand will update stock in all your sales channels to same value.
+    + onHand in salesChannels object can be used to send different values to each sales channel.
+    + When used in combination, value from within salesChannels object will be used for individual sales channels and value form globalOnHand will be used for all remaining sales channels, which were not updated inidividually.
+
+
+If there are any products in the request that are invalid or an error occurred during the update, the response code will be 200, however there will be additional fields present such as "hasError" and "errors" detailing the mistakes.
+Possible errors:
+
+```"Product with ID {} is defined multiple times ({})."```
+```"Cannot set VAT {} to item {} at channel {}. Must be one of {}."```
+```"Product with ID {} does not exist."```
+
+In case of any missing productIDs in the request, the response follows this format:
+
+```
+{
+  "httpStatus": 400,
+  "code": "VALIDATION_ERROR",
+  "codeDescription": "Validation of request failed",
+  "details": "productId cannot be null."
+}
+```
+    
+
++ Request Global onhand update example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (ProductAvailabilityRequest)
+    
+    + Body
+    
+                {
+                  "products": [
+                    {
+                      "productId": "A25253FG",
+                      "globalOnHand": 45,
+                            "b2bPrice": {
+                                "value": 20,
+                                "vat": 23,
+                                "currency": "EUR"
+                        },
+                      "salesChannels": [
+                        {
+                          "salesChannelCode": "MALLCZ",
+                          "price": 700,
+                          "vat": 21,
+                          "handlingTime": 2,
+                          "minimumPrice": 500
+                        },
+                         {
+                          "salesChannelCode": "MALLSK",
+                          "price": 35,
+                          "vat": 22,
+                          "handlingTime": 4,
+                          "minimumPrice": 25
+                        },
+                        {
+                          "salesChannelCode": "ALZACZ",
+                          "price": 560,
+                          "vat": 21
+                        }
+                      ]
+                    },
+                    {
+                      "productId": "B2578D",
+                      "globalOnHand": 5,
+                      "globalHandlingTime": 0
+                    }
+                  ]
+                }
+
++ Response 200 (application/json)
+    + Attributes
+    
++ Request Onhand update for sales channels example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (ProductAvailabilityRequest)
+    
+    + Body
+    
+                {
+                  "hasErrors": true,
+                  "errors": [
+                    {
+                      "productId": "B2578D",
+                      "errorMessage": "Product with ID B2578D does not exist."
+                    }
+                  ],
+                  "products": [
+                    {
+                      "productId": "A25253FG",
+                      "globalOnHand": null,
+                      "salesChannels": [
+                        {
+                          "salesChannelCode": "MALLCZ",
+                          "onHand": 45,
+                          "price": 700,
+                          "vat": 21
+                        },
+                         {
+                          "salesChannelCode": "MALLSK",
+                          "onHand": 45,
+                          "price": 35,
+                          "vat": 22
+                        },
+                        {
+                          "salesChannelCode": "ALZACZ",
+                          "price": 560,
+                          "onHand": 15,
+                          "vat": 21
+                        }
+                      ]
+                    }
+                  ]
+                }
+
++ Response 200 (application/json)
+    + Attributes
+
++ Request Onhand update. Combined global and sales channel (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (ProductAvailabilityRequest)
+    
+    + Body
+    
+                {
+                  "products": [
+                    {
+                      "productId": "A25253FG",
+                      "globalOnHand": 45,
+                      "salesChannels": [
+                        {
+                          "salesChannelCode": "MALLCZ",
+                          "price": 700,
+                          "vat": 21
+                        },
+                         {
+                          "salesChannelCode": "MALLSK",
+                          "price": 35,
+                          "vat": 20
+                        },
+                        {
+                          "salesChannelCode": "ALZACZ",
+                          "price": 560,
+                          "onHand": 15,
+                          "vat": 21
+                        }
+                      ]
+                    }
+                  ]
+                }
+
++ Response 200 (application/json)
+    + Attributes
+
+
+## Product Detailed Summary [/v1/products/detailed-summary{?extraFields}]
+
+### Get Product Detailed Summary [POST]
+
+Returns paginated detailed product summary from MPI, including per-sales-channel availability, price, currency and handling time.
+
++ This endpoint uses **POST** because filtering is provided in request body.
++ If query parameter `extraFields=offerData` is used, additional `offerData` object is returned for each sales channel (if available).
++ If `filter` is empty (`{}`), all products are returned (paginated).
++ If any attribute is null, this attribute is not included in the response (see *General rules*).
++ Maximum supported value for `pageSize` is `100`.
++ `offerData` may be returned with partial fields only (e.g. missing `offerId`) depending on current offer lifecycle state.
+
++ Parameters
+    + extraFields: `offerData` (string, optional) - Additional response fields. Currently supported value: `offerData`.
+
++ Request Filter by sales channels and product IDs (application/json)
+    + Headers
+
+            Authorization: Bearer token
+
+    + Body
+
+            {
+              "page": 1,
+              "pageSize": 100,
+              "filter": {
+                "saleChannelCodes": ["ALZA.CZ", "ALLEGRO.CZ"],
+                "productIds": ["5901234123457", "X100-LAMP"]
+              }
+            }
+
++ Request Filter by sales channels only (application/json)
+    + Headers
+
+            Authorization: Bearer token
+
+    + Body
+
+            {
+              "page": 1,
+              "pageSize": 100,
+              "filter": {
+                "saleChannelCodes": ["ALZA.CZ", "ALLEGRO.CZ"]
+              }
+            }
+
++ Request All products (application/json)
+    + Headers
+
+            Authorization: Bearer token
+
+    + Body
+
+            {
+              "page": 1,
+              "pageSize": 100,
+              "filter": {}
+            }
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "total": 3,
+              "page": 1,
+              "pageSize": 100,
+              "data": [
+                {
+                  "productId": "5901234123457",
+                  "ean": "5901234123457",
+                  "globalOnHand": 12,
+                  "salesChannels": [
+                    {
+                      "salesChannelCode": "ALZA.CZ",
+                      "onHand": 10,
+                      "price": 2499.00,
+                      "currency": "CZK",
+                      "handlingTime": 2,
+                      "offerData": {
+                        "offerId": "A-100245",
+                        "title": "Ergo Office Chair Mesh Black",
+                        "status": "PUBLISHED_LIVE"
+                      }
+                    },
+                    {
+                      "salesChannelCode": "ALLEGRO.CZ",
+                      "onHand": 2,
+                      "price": 2599.00,
+                      "currency": "CZK",
+                      "handlingTime": 3,
+                      "offerData": {
+                        "offerId": "CZ-77881234",
+                        "title": "Ergo Office Chair Mesh Black",
+                        "status": "UPDATE_PENDING"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "productId": "4006381333931",
+                  "ean": "4006381333931",
+                  "globalOnHand": 0,
+                  "salesChannels": [
+                    {
+                      "salesChannelCode": "ALZA.CZ",
+                      "onHand": 0,
+                      "price": 899.00,
+                      "forcePrice": 849.00,
+                      "currency": "CZK",
+                      "handlingTime": 7,
+                      "offerData": {
+                        "offerId": "A-100246",
+                        "title": "Desk Lamp LED Warm White",
+                        "status": "MPI_ONLY"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "productId": "X100-LAMP",
+                  "ean": "8712345678906",
+                  "globalOnHand": 5,
+                  "salesChannels": [
+                    {
+                      "salesChannelCode": "ALLEGRO.CZ",
+                      "onHand": 5,
+                      "price": 39.90,
+                      "currency": "EUR",
+                      "handlingTime": 5,
+                      "offerData": {
+                        "title": "Portable Camping Lantern 300 lm",
+                        "status": "DRAFT"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+
++ Response 400 (application/json)
+    + Body
+
+            {
+              "httpStatus": 400,
+              "code": "VALIDATION_ERROR",
+              "codeDescription": "Validation of request failed",
+              "validationErrors": [
+                {
+                  "message": "must be less than or equal to 100",
+                  "field": "pageSize"
+                }
+              ]
+            }
+
++ Response 401 (application/json)
+    + Body
+
+            {
+              "timestamp": "2026-02-25T10:15:30.505+00:00",
+              "path": "/v1/products/detailed-summary",
+              "status": 401,
+              "error": "Unauthorized",
+              "message": "Authentication was not done or is invalid.",
+              "requestId": "119e2bfa-1"
+            }
+
+
+## Group Order Management
+
+## Order status flow logic
+Changes in order status are defined as follows
+- RESERVATION (set by Marketplace) – change possible to CANCEL or OPEN
+- OPEN (set by Marketplace) – change possible to CANCEL or SHIPPING
+- SHIPPING (set by Partner) – change possible to CANCEL or SHIPPED. SHIPPING is not recognized state for every marketplace, but it is to be set in MPI in all cases.
+- SHIPPED (set by Partner)  – change possible to DELIVERED or RETURNED
+- DELIVERED (set by Partner, Mall, Kaufland) - final status -> order in DELIVERED status cannot be changed to any other status.
+- RETURNED (final status valid for all marketplaces) => order was returned from carrier, before it was delivered to customer.
+
+![Order flow diagram](https://codingbear-public-assets.s3.eu-central-1.amazonaws.com/order_flow_diagram_v2.jpg)
+
+## Carriers
+Carrier that will be used for goods delivery is defined for every order by carrier identification. For this purpose ENUM is defined listing all supported carriers. In case of MALL delivery platform (https://knowledgebase.mallgroup.com/category/dopravy/mall-doprava/) or ALZA transport, only certain carriers are used
+- MDP Classic
+    - ULOZENKA, DPD
+- MDP Spectrum
+    - DPD
+- ALZA Transport
+    - TOPTRANS, DPD, PACKETA, ALZA
+
+## Serial numbers
+<a name="serial-numbers"></a>
+
+Some ALZA orders may need serial numbers to be successfully processed by marketplace. For this functionality was added information
+about required serial numbers to those endpoints [Get orders](#get-orders), [Get order](#get-order). 
+
+Be sure all serial numbers are filled when updating order to status **SHIPPED**.
+
+## Get Orders [/v1/orders{?status,from,to,partnerId,originalId,source,extraFields}]
+<a name="get-orders"></a>
+
++ Parameters
+    + status (String, optional)
+        You can select multiple statuses. You can also leave blank to get orders in any status.
+        + values
+            + `RESERVATION`
+            + `OPEN`
+            + `SHIPPING`
+            + `SHIPPED`
+            + `DELIVERED`
+            + `RETURNED`
+            + `CANCELLED`
+    + from: `2025-08-10` (string, optional) - From date (ISO 8601 YYYY-MM-DD format) *If this property and orders ids are not specified, only orders created within last 30 days will be returned.*
+    + to: `2025-09-10` (string, optional) - To date (ISO 8601 YYYY-MM-DD format) - If not specified, all orders created beginning "from" till current date will be returned.
+    + partnerId: 52165815 (string, optional) - You can select multiple ids of the orders as referenced in your system
+    + originalId: 10034238001 (string, optional) - You can select multiple ids of the orders as referenced in origin system. Should be used with source parameter as original Id does not have to be unique in MPI system.
+    + source (String, optional)
+        You can select multiple sources. The source represents the system order was created in.
+        + values
+             + `MALL.HR`
+             + `MIMOVRSTE.COM`
+             + `ALZA.CZ`
+             + `KAUFLAND.CZ`
+             + `KAUFLAND.SK`
+             + `KAUFLAND.DE`
+             + `KAUFLAND.AT`
+             + `KAUFLAND.FR`
+             + `KAUFLAND.IT`
+             + `ALLEGRO.PL`
+             + `ALLEGRO.CZ`
+             + `ALLEGRO.SK`
+             + `ALLEGRO.HU`
+             + `HEUREKA.CZ`
+             + `HEUREKA.SK`
+             + `HEUREKA.HU`
+    + extraFields (String, optional)
+        Currently you can select an extra field for billingAddress and carrier.note.
+        + values
+             + `billingAddress`
+             + `lastMileDeliveryAddress`
+             + `carrier.note`
+             + `paymentId`
+             + `packages`
+
+### Get Orders [GET]
+**⚠️ DEPRECATED** — as of 31.07.2026, use [GET /v2/orders](#get-orders-v2) instead.
+
+Use to get list of your orders. You can query by order statuses and date range of when the orders were created.
+The request body should be empty.
+
++ Request
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
++ Response 200 (application/json)
+    + Attributes (array[OrderDetail])
+
+## Get Orders v2 [/v2/orders{?status,from,to,partnerId,originalId,source}]
+<a name="get-orders-v2"></a>
+
++ Parameters
+    + status (String, optional)
+        You can select multiple statuses. You can also leave blank to get orders in any status.
+        + values
+            + `RESERVATION`
+            + `OPEN`
+            + `SHIPPING`
+            + `SHIPPED`
+            + `DELIVERED`
+            + `RETURNED`
+            + `CANCELLED`
+    + from: `2025-08-10` (string, optional) - From date (ISO 8601 YYYY-MM-DD format) *If this property and orders ids are not specified, only orders created within last 30 days will be returned.*
+    + to: `2025-09-10` (string, optional) - To date (ISO 8601 YYYY-MM-DD format) - If not specified, all orders created beginning "from" till current date will be returned.
+    + partnerId: 52165815 (string, optional) - You can select multiple ids of the orders as referenced in your system
+    + originalId: 10034238001 (string, optional) - You can select multiple ids of the orders as referenced in origin system. Should be used with source parameter as original Id does not have to be unique in MPI system.
+    + source (String, optional)
+        You can select multiple sources. The source represents the system order was created in.
+        + values
+             + `MALL.HR`
+             + `MIMOVRSTE.COM`
+             + `ALZA.CZ`
+             + `KAUFLAND.CZ`
+             + `KAUFLAND.SK`
+             + `KAUFLAND.DE`
+             + `KAUFLAND.AT`
+             + `KAUFLAND.FR`
+             + `KAUFLAND.IT`
+             + `ALLEGRO.PL`
+             + `ALLEGRO.CZ`
+             + `ALLEGRO.SK`
+             + `ALLEGRO.HU`
+             + `HEUREKA.CZ`
+             + `HEUREKA.SK`
+             + `HEUREKA.HU`
+
+### Get Orders v2 [GET]
+
+Use to get list of your orders. You can query by order statuses and date range of when the orders were created.
+The request body should be empty.
+
++ Request
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
++ Response 200 (application/json)
+    + Attributes (array[OrderDetailV2])
+
+
+## Get Order [/v1/orders/{id}{?extraFields}]
+<a name="get-order"></a>
+
+### Get order [GET]
+**⚠️ DEPRECATED** — as of 31.07.2026, use [GET /v2/orders/{id}](#get-order-v2) instead.
+
+Use to get information about one order.
+
++ Parameters
+    + id: `52165815` (string, required) - Id of the order as referenced in your system
+    + extraFields (String, optional)
+        Currently you can select an extra field for billingAddress and carrier.note.
+        + values
+             + `billingAddress`
+             + `carrier.note`
+             + `paymentId`    
++ Request
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
++ Response 200 (application/json)
+    + Attributes (OrderDetail)    
+
+## Get Order v2 [/v2/orders/{id}]
+<a name="get-order-v2"></a>
+
+### Get order v2 [GET]
+
+Use to get information about one order.
+
++ Parameters
+    + id: `52165815` (string, required) - Id of the order as referenced in your system
++ Request
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
++ Response 200 (application/json)
+    + Attributes (OrderDetailV2)    
+
+## Update Orders [/v1/orders/batch-update]
+<a name="update-orders"></a>
+
+### Update Orders [PUT]
+**⚠️ DEPRECATED** — as of 31.07.2026, use [PUT /v2/orders/batch-update](#update-orders-v2) instead.
+
+Use to update order status, tracking information and actual delivery date.
+
+If [Get orders](#get-orders) or [Get order](#get-order) contains *serialNumbers* then request body have to
+contain all missing serials numbers. Please check [Serial numbers](#serial-numbers) section.
+
+Pay attention to the response body. During the batch-update some validation errors can occur. Then the fields "hasErrors" and "errors" will contain relevant information, even though the response http status code is 200.
+Possible errors:
+```"Missing required field '{}'."```
+```"Missing required field '{}' at parent '{}'."``` (in nested fields)
+```"Status change {} is not repeatable."```
+```"Change to status {} is not allowed from status {}."```
+```"Order {} using Mall delivery cannot be updated after it has been shipped."```
+```"Order {} does not have shipping labels created."``` (when trying to switch to SHIPPED for MALL orders managed by partner)
+```"Order {} does not have a shipment created."``` (when trying to switch to SHIPPED for ALZA orders managed by partner)
+```"Actual delivery date may only be filled when changing status from SHIPPED to DELIVERED ({})."```
+```"Order delivery is managed by eshop. Actual delivery date field is not allowed."```
+```"Field {} contains value {} that is not allowed. Allowed values are: {}"```
+```"Status change {} is not allowed when order is in UPDATE_PENDING"```
+```"Serial numbers are not filled for order id {}."``` (When all serial numbers are not filled for order id)
+
++ Request (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (UpdateOrderList)
+    
++ Request Cancellation request example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    
+    + Body
+    
+                {
+                  "orders": [
+                    {
+                      "id": "324GHdf87b",
+                      "originalId": "987654321",
+                      "status": "CANCELLED",
+                      "cancellationReference": "Test cancellation reference",
+                      "cancelReason": "OUT_OF_STOCK"
+                    }
+                  ]
+                }
+
++ Response 200 (application/json)
+    + Attributes (OrderList)
+
+## Update Orders v2 [/v2/orders/batch-update]
+<a name="update-orders-v2"></a>
+
+### Update Orders v2 [PUT]
+
+Use to update order status, tracking information and actual delivery date.
+
+If [Get orders v2](#get-orders-v2) or [Get order v2](#get-order-v2) contains *serialNumbers* then request body have to
+contain all missing serials numbers. Please check [Serial numbers](#serial-numbers) section.
+
+Pay attention to the response body. During the batch-update some validation errors can occur. Then the fields "hasErrors" and "errors" will contain relevant information, even though the response http status code is 200.
+Possible errors:
+```"Missing required field '{}'."```
+```"Missing required field '{}' at parent '{}'."``` (in nested fields)
+```"Status change {} is not repeatable."```
+```"Change to status {} is not allowed from status {}."```
+```"Order {} using Mall delivery cannot be updated after it has been shipped."```
+```"Order {} does not have shipping labels created."``` (when trying to switch to SHIPPED for MALL orders managed by partner)
+```"Order {} does not have a shipment created."``` (when trying to switch to SHIPPED for ALZA orders managed by partner)
+```"Actual delivery date may only be filled when changing status from SHIPPED to DELIVERED ({})."```
+```"Order delivery is managed by eshop. Actual delivery date field is not allowed."```
+```"Field {} contains value {} that is not allowed. Allowed values are: {}"```
+```"Status change {} is not allowed when order is in UPDATE_PENDING"```
+```"Serial numbers are not filled for order id {}."``` (When all serial numbers are not filled for order id)
+
++ Request (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (UpdateOrderList)
+    
++ Request Cancellation request example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    
+    + Body
+    
+                {
+                  "orders": [
+                    {
+                      "id": "324GHdf87b",
+                      "originalId": "987654321",
+                      "status": "CANCELLED",
+                      "cancellationReference": "Test cancellation reference",
+                      "cancelReason": "OUT_OF_STOCK"
+                    }
+                  ]
+                }
+
++ Response 200 (application/json)
+    + Attributes (OrderListV2)
+
+## Print Labels [/v1/orders/{orderId}/labels{?returnOnlyUrl}]
+
++ Parameters
+    + orderId: `1236548651` (number, required) - Id of the order as referenced in your system.
+    + returnOnlyUrl: true (boolean, optional) - if specified and set to true no PDF file with shipping label will be returned, only location header will be present with url to generated shipping label. This is due to compatibility reasons.
+    
+### Print existing labels [GET]
+
++ Use to print existing shipping label without regenerating it.
++ In case of a missing shipping label for an order (e.g., label has not yet been generated), an error response will be returned.
+
+Missing label error response:
+```
+{
+  "httpStatus":404,
+  "code":"NOT_FOUND",
+  "codeDescription":"The specified resource or entity has not been found",
+  "details":"Order with partnerId XXXXX does not have a generated label."
+}
+```
+
+
++ Request Request example
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+        
+    
++ Response 200 (application/pdf)
+    + Headers
+    
+            Content-Disposition: attachment;filename=shipping_labels.pdf"
+            Location: url-to-generated-shipping-label
+
++ Response 204 (No Content)
+    + Headers
+
+            Location: url-to-generated-shipping-label
+
++ response 404 (application/json)
+
+    + Body
+
+                {
+                    "httpStatus": 404,
+                    "code": "NOT_FOUND",
+                    "codeDescription": "The specified resource or entity has not been found",
+                    "details": "Order with partnerId 4321425813 not found."
+                }
+### Generate Shipping Labels [POST]
+
++ Use to generate shipping labels for the orders, where the shipping is provided by the sales channel. Such orders are marked with "managedByPartner": false.
+You can create new labels up till the order status is changed to `shipped`.
++ There are two different means of using this method. These are determined by the value in 'ShippingLabelsPrintMethod' on the order.
+    1. *SIMPLE*: Only number of packages needs to be specified.
+    2. *DETAILED*: You must specify details for each individual package. You do not need to specify the number of packages using this method, however it is still allowed. You can either use dimensions for your package or volume.
++ Items of the order can be split into several packages, even if they are the same item. If only one item fits into a single package, meaning that 2 same items will need to be shipped in 2 packages, you should reflect this in your request
+to print the labels. This will result in different labels for the two packages, even if they contain the same item.
++ Furthermore, a single item can be split into several packages (the said item might be too big or is simply shipped in more parts) In this case, you should request for as many packages as you need, all of the packages will contain
+valid information about this item, but only one of them will have count of 1, the others will list the item but will specify count 0.
++ It is possible to generate max. 3 labels for an order.
+
+
+
+Sample validation error response:
+```
+{
+  "httpStatus": 400,
+  "code": "VALIDATION_ERROR",
+  "codeDescription": "Validation of request failed",
+  "details": "popis"
+}
+```
+Additional possible details:
+```"Order with partnerId {} not found."``` (status 404)
+```"Cannot request labels for order original ID {}. Order is managed by partner."```
+```"Cannot request labels for order original ID %s. Order's status is {}."```
+```"Label print for order {} failed in MALL API. Details: {}"``` (describes error from MALL API)
+```"Order {} shipment deletion failed in ALZA API. Details: {}"``` (when requesting new ALZA labels, the previous labels - and shipment - have to be deleted first)
+```"Order {} shipment creation failed in ALZA API. Details: {}"```
+
+
++ Request Simple request example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Attributes (RequestShippingLabels)
+    
+    + Body
+    
+                {
+                    "numberOfPackages": 3
+                }
+    
+        
+    
++ Response 200 (application/pdf)
+    + Headers
+    
+            Content-Disposition: attachment;filename=shipping_labels.pdf"
+            Location: url-to-generated-shipping-label
+
++ Response 201
+    + Headers
+    
+            Location: url-to-generated-shipping-label
+            
++ Response 202
+    + Headers
+    
+            Location: url-to-generated-shipping-label
+
++ Request Detailed request example (application/json)
+    + Headers
+                
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+                
+    + Body
+    
+            {   "numberOfPackages": 2,
+                "packages": [
+                    {
+                        "packageId": 1,
+                        "weight": 4300,
+                        "dimension1": 12,
+                        "dimension2": 6,
+                        "dimension3": 8,
+                        "items": [
+                            {
+                                "id": "A25253FG",
+                                "count": 1
+                            }
+                        ]
+                    },
+                    {
+                        "packageId": 2,
+                        "weight": 4300,
+                        "volume": 576,
+                        "items": [
+                            {
+                                "id": "A25253FG",
+                                "count": 1
+                            },
+                            {
+                                "id": "E25433FF",
+                                "count": 3
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        
+    
++ Response 200 (application/pdf)
+    + Headers
+    
+            Content-Disposition: attachment;filename=shipping_labels.pdf"
+            Location: url-to-generated-shipping-label
+
++ Response 201
+    + Headers
+    
+            Location: url-to-generated-shipping-label
+
+## Request Shipping Labels - batch [/v1/orders/labels]
+
+### Generate Shipping Labels [POST]
+
+Use for asynchronous request to generate shipping labels for multiple orders at once. Endpoint will return **requestId**, which will be used to get status of request processing. It will also return summary of how many orders were labels requested for as well as any validation errors. The request will be processed as long as at least one of the orders has passed thru initial MPI validation.
++ **orderSource** needs to be specified in request together with at least one of the order identifiers (**orderId** or **originalOrderId**).
++ Providing **numberOfPackages** or filling in detail for each package from the order is optional. If none of mentioned is sent, MPI will use product data to request correct amount of labels. If you specify **numberOfPackages** or fill in detail for each package, the calculation is not done byl MPI algorithm, but data you provided are used instead of product data.
++ Each order will be validated in MPI first, before being processed further. Any orders, that do not pass validation will be returned in the list **validationErrors** with detailing the reason for failing the validation.
+
+Sample validation error response:
+```
+{
+  "code": "WRONG_ORDER_STATUS",
+  "message": "Order must be in status SHIPPING"
+}
+```
+Possible validation errors
+
+|code|message|
+|-|-|
+|`ORDER_NOT_FOUND`|`Order not found`|
+|`WRONG_ORDER_TYPE`|`Order must have managedByPartner = false`|
+|`WRONG_ORDER_STATUS`|`Order must be in status SHIPPING`|
+|`WRONG_REQUEST_PARAMETERS`|`Order cannot be split into requested number of packages`|
+|`WRONG_REQUEST_PARAMETERS`|`Labels were already requested in different request, which is being processed`|
+
++ Request Simple request example (application/json)
+    + Headers
+
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
+    + Attributes
+        + orders (Order)
+             + One of
+                + properties
+                    + numberOfPackages: 4 (number, required) - The number of packages, the order will be shipped in. Corresponds to number of labels, that will be printed.
+                + properties
+                    + packages
+                        + properties
+                             + packageId: 1 (number, required) - package identifier for this request. Needs to be unique within single request
+                             + One of
+                                + properties
+                                    + weight: 4300 (number, required) - The weight of the package in grams.
+                                    + dimension1: 12 (number, optional) - First dimension of the package in cm.
+                                    + dimension2: 6 (number, optional) - Second dimension of the package in cm.
+                                    + dimension3: 8 (number, optional) - Third dimension of the package in cm.
+                                    + items
+                                        + id: `A25253FG` (string) - Product id from your system.
+                                        + count: 3 (number) - Count of this product id in the package.
+                                + properties
+                                    + weight: 4300 (number, required) - The weight of the package in grams.
+                                    + volume: 576 (number, optional) - Volume of the package in cm3.
+                                    + items
+                                        + id: `A25253FG` (string) - Product id from your system.
+                                        + count: 3 (number) - Count of this product id in the package.
+                                + properties
+                                    + size: `SM` (enum[string], required) - Simplified identification of package size.
+                                        + members
+                                             + `XS` - weight up to 2kg, dimensions up to 20x30x20 cm
+                                             + `S` - weight  up to 5kg, dimensions up to 40x30x30 cm
+                                             + `SM` - weight  up to 10kg, dimensions up to 60x40x30 cm
+                                             + `M` - weight  up to 15kg, dimensions up to 70x40x40 cm
+                                             + `ML` - weight  up to 20kg, dimensions up to 80x40x50 cm
+                                             + `L`- weight  up to 31kg, dimensions up to 90x40x50 cm
+                                             + `XL` - weight  up to 50kg, dimensions up to 120x80x90 cm
+                                             + `XXL` - weight  up to 200kg, dimensions up to 120x160x120 cm
+                                    + items
+                                        + id: `A25253FG` (string) - Product id from your system.
+                                        + count: 3 (number) - Count of this product id in the package.
+
+    + Body
+
+                {
+                    "orders": [
+                        {
+                            "orderSource": "ALZA.CZ",
+                            "orderId": "351236192",
+                            "originalOrderId": "4504330851"
+                        },
+                        {
+                            "orderSource": "MALL.CZ",
+                            "orderId": "338730013",
+                            "originalOrderId": "13270926102"
+                        },
+                        {
+                            "orderSource": "MALL.CZ",
+                            "orderId": "338730014",
+                            "originalOrderId": "13270926103"
+                        },
+                        {
+                            "orderSource": "MALL.HU",
+                            "orderId": "338730016",
+                            "originalOrderId": "13270926105"
+                        }
+
+                    ]
+                }
+
++ Request Number of packages is specified example (application/json)
+
+    + Body
+
+                {
+                    "orders": [
+                        {   "numberOfPackages": 2,
+                            "orderSource": "ALZA.CZ",
+                            "orderId": "351236192",
+                            "originalOrderId": "4504330851"
+                        },
+                        {   "numberOfPackages": 1,
+                            "orderSource": "MALL.CZ",
+                            "orderId": "338730013",
+                            "originalOrderId": "13270926102"
+                        },
+                        {   "numberOfPackages": 5,
+                            "orderSource": "MALL.CZ",
+                            "orderId": "338730014",
+                            "originalOrderId": "13270926103"
+                        },
+                        {   "numberOfPackages": 1,
+                            "orderSource": "MALL.HU",
+                            "orderId": "338730016",
+                            "originalOrderId": "13270926105"
+                        }
+
+                    ]
+                }
+
++ Request Detail for each order package is provided example (application/json)
+
+    + Body
+
+                {
+                    "orders": [
+                        {
+                            "packages": [
+                                {
+                                    "packageId": 1,
+                                    "weight": 4300,
+                                    "dimension1": 12,
+                                    "dimension2": 6,
+                                    "dimension3": 8,
+                                    "items": [
+                                        {
+                                            "id": "A25253FG",
+                                            "count": 1
+                                        }
+                                    ]
+                                },
+                                {
+                                    "packageId": 2,
+                                    "weight": 4300,
+                                    "volume": 576,
+                                    "items": [
+                                        {
+                                            "id": "A25253FG",
+                                            "count": 1
+                                        },
+                                        {
+                                            "id": "E25433FF",
+                                            "count": 3
+                                        }
+                                    ]
+                                }
+                            ],
+                            "orderSource": "ALZA.CZ",
+                            "orderId": "351236192",
+                            "originalOrderId": "4504330851"
+                        },
+                        {
+                            "packages": [
+                                {
+                                    "packageId": 1,
+                                    "weight": 4300,
+                                    "dimension1": 12,
+                                    "dimension2": 6,
+                                    "dimension3": 8,
+                                    "items": [
+                                        {
+                                            "id": "A25253FG",
+                                            "count": 1
+                                        }
+                                    ]
+                                }
+                            ],
+                            "orderSource": "MALL.CZ",
+                            "orderId": "338730013",
+                            "originalOrderId": "13270926102"
+                        }
+                    ]
+                }
+
++ Response 202 (application/json)
+    + Headers
+
+
+    + Attributes
+        + requestId: `af177cc7-5498-41e1-8f3a-96439a13b40d` (string) - RequestId is UUID generated by MPI. Use it to get shipping labels request status. Will be issued if at least one order has passed initial validation.
+        + requestedCount: 2 (number) - how many orders you have requested labels for
+        + processableCount: 1 (number) - how many orders has passed the validation and are being processed
+        + validationErrors (array [ResponseLabelsOrders])
+
+## Shipping labels request status  [/v1/orders/labels/batch/{requestId}]
+
+### Get shipping labels request status [GET]
+
+Use to get the status of previously sent request to generate labels in batch
++ Endpoint will return status for whole request, together with lists of orders that have been processed, are being processed and those resulted in error.
+
++ parameters
+    + requestId: `af177cc7-5498-41e1-8f3a-96439a13b40d` (string) - RequestId generated by MPI.
+
++ Response 200 (application/json)
+    + Headers
+
+
+    + Attributes
+        + requestStatus (LabelRequestStatus)
+        + completed (array[OrderLabelUrl])
+        + processing (array[Order])
+        + erroneous (ResponseLabelsOrders)
+
++ Response 404 (application/json)
+    + Headers
+
+    + Attributes
+        +
+        
+## Print existing shipping labels into one file  [/v1/orders/labels/merge{?format}]
+
+### Print existing labels [POST]
+
+Use to download multiple previously generated labels as one PDF file
++ if an issue with labels for only of the requested orders occures, error message will be returned. First instance of an error will stop the merge process, meaning the error response will always contain a single error only.
++ Only if all requested orders have label ready, single PDF file with appended labels will be returned.
+
++ Parameters
+    + format (enum[MergeType]) - format to print labels
+        + Members
+            + A4
+            + CONTINUOUS
+
++ Request (application/json)
+    + Headers
+
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
+    + Attributes
+        + orders (array[Order])
+
++ Response 200 (application/pdf)
+    + Headers
+
+            Content-Disposition: attachment;filename=shipping_labels.pdf"
+
++ Response 404 (application/json)
+    + Headers
+    
+    
+    + Body
+    
+                {
+                    "httpStatus": 404,
+                    "code": "NOT_FOUND",
+                    "codeDescription": "Existing label not found",
+                    "details": "Failed to retreive existing label for order with original id {orderOriginalId} from source {orderSource}."
+                }
+
+
+## Cross dock parcel tracking [/v1/orders/{orderId}/cross-dock]
+
++ parameters
+    + orderId: 1234577 (string) - partner order id
+
+### Get cross dock tracking [GET]
+
+    Return cross dock tracking information for order.
+
++ Request (application/json)
+
++ Response 200 (application/json)
+    + Attributes (CrossDock)
+
+
+### Update cross dock tracking [PUT]
+
+    Update cross dock tracking information of specified order.
+
++ Request (application/json)
+    + Attributes (CrossDock)
+
++ Response 200 (application/json)
+    + Attributes (CrossDock)
+
+
+### Add cross dock tracking [POST]
+
+    Insert one cross dock tracking information to specified order if not already exists.
+
++ Request (application/json)
+    + Attributes (CrossDockTracking)
+
++ Response 200 (application/json)
+    + Attributes (CrossDockTracking)
+
+## Customer Claim [/v1/orders/{orderId}/claims]
+
++ Parameters
+    + orderId: `324GHdf87` (string, required) - Id of the order as referenced in your system.
+
+### Create new claim [POST]
+
+    Use to create new customer claim to order.
+    
+Sample validation error response:
+```
+{
+  "httpStatus": 400,
+  "code": "VALIDATION_ERROR",
+  "codeDescription": "Validation of request failed",
+  "details": "popis"
+}
+```
+Additional possible details:
+```"Missing required field '{}'."```
+```"Missing required field '{}' at parent '{}'."``` (in nested fields)
+```"Cannot process claim request ID {} with return reason {}. Order is not in {}, current status is {}."```
+```"Product with code {} not found."```
+```"Cannot add more claims for product {} than products quantity ({})."```
+```"Cannot add more claims for product {}, already has {} claim(s)."```
+
+
++ Request (application/json)
+    + Headers
+
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
+    + Attributes (array[OrderClaim])
+
++ Response 200 (application/json)
+    + Attributes (array[OrderClaim])
+
+
+### Get order claims [GET]
+
+    Use to get order claims
+
+
++ Request (application/json)
+    + Headers
+
+                Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
++ Response 200 (application/json)
+    + Attributes (array[OrderClaim])
+
+## Upload Order Document [/v1/orders/documents/upload]
+
+### Upload order document [POST]
+
+Use to upload an invoice or credit note for an order. The document is stored in MPI and then sent to the marketplace.
+
+The endpoint accepts `multipart/form-data`:
++ file is sent in field `attachment`
++ JSON payload is sent in field `uploadDocumentRequest`
+
+Identification rules:
++ At least one of `orderId` or `originalId` must be provided
++ If both `orderId` and `originalId` are provided, both values must match the same order
++ `orderId` means partner order id
++ `originalId` means marketplace order id
++ For B2B orders, `originalId` is MPI internal order id
+
+Supported document types:
++ `invoice`
++ `credit-note`
+
++ Request Example request (multipart/form-data)
+    + Headers
+
+            Authorization: Bearer SIsImlhdCI6MTUxNjIzOTAyMn0
+
+    + Body
+
+            --boundary
+            Content-Disposition: form-data; name="attachment"; filename="invoice.pdf"
+            Content-Type: application/pdf
+            
+            <binary data>
+            
+            --boundary
+            Content-Disposition: form-data; name="uploadDocumentRequest"
+            Content-Type: application/json
+            
+            {
+                "orderId": "Partner123",
+                "originalId": "ae5d4eb4-c7e9-4b7a-a633-d411dc8b83eb",
+                "documentId": "INV_20251013123",
+                "documentType": "invoice"
+            }
+            --boundary--
+
++ Response 200 (application/json)
+
++ Response 400 (application/json)
+    + Body
+
+            {
+                "httpStatus": 400,
+                "code": "VALIDATION_ERROR",
+                "codeDescription": "Validation of request failed",
+                "details": "INVOICE is generated automatically."
+            }
+
+
++ Response 404 (application/json)
+    + Body
+
+            {
+                "httpStatus": 404,
+                "code": "NOT_FOUND",
+                "codeDescription": "The specified resource or entity has not been found",
+                "details": "Order with Partner ID: (7fb1caa0-5b1c-11f0-8be7-f3ad67ce70f2) or Original ID: (null) for partner (TEST01) not found."
+            }
+
+## Group Partner Webhook
+
+If you wish to get notified of orders' status changes, you need to set up the `Notitfy partner` endpoint based on following specification. When the endpoint is ready on your side, you send the URL link of said endpoint to our representant.
+
+## Partner notification [/v1/mpi-webhook]
+
+### Notify Partner [POST]
+
++ Request (application/json)
+                
+    + Attributes (array[NotifyPartnerOrder])
+
++ Response 200 (application/json)
+
+# Data Structures
+
+## CrossDockTracking
+ - parcelTrackingNumber: 123abc45897 (string, required) - parcel tracking identificator 
+ - parcelTrackingUrl: 'www.parceltracking.com/id=abc' (string, required) - parcel tracking url 
+
+## CrossDock
+ - parcelTracking (array[CrossDockTracking]) - array of parcel tracking records
+
+## ProductSummary(object)
+ + source (Source) - the eshop the products are listed for
+ + products: `01`, `02`, `V01` (array[string]) - the listed products
+
+
+## ProductDetailedSummaryRequest (object)
+ + page: 1 (number, required) - Page number (1-based).
+ + pageSize: 100 (number, required) - Number of products per page. Maximum value is `100`.
+ + filter (ProductDetailedSummaryFilter, optional) - Filtering criteria. Can be an empty object `{}`.
+
+## ProductDetailedSummaryFilter (object)
+ + saleChannelCodes: `ALZA.CZ`, `ALLEGRO.CZ` (array[string], optional) - Filter by sales channel codes.
+ + productIds: `5901234123457`, `X100-LAMP` (array[string], optional) - Filter by product IDs.
+
+## ProductDetailedSummaryResponse (object)
+ + total: 3 (number) - Total number of matching products (across all pages).
+ + page: 1 (number) - Current page number.
+ + pageSize: 100 (number) - Number of items requested per page.
+ + data (array[ProductDetailedSummaryItem]) - Result items for current page.
+
+## ProductDetailedSummaryItem (object)
+ + productId: `5901234123457` (string) - Product identifier in partner/MPI scope.
+ + ean: `5901234123457` (string, optional) - EAN/GTIN of the product (typically 13 digits for EAN-13).
+ + globalOnHand: 12 (number, optional) - Global on hand quantity for the product.
+ + salesChannels (array[ProductDetailedSummarySalesChannel]) - Per-sales-channel summary.
+
+## ProductDetailedSummarySalesChannel (object)
+ + salesChannelCode: `ALZA.CZ` (string) - Sales channel code.
+ + onHand: 10 (number, optional) - On hand quantity for this sales channel.
+ + price: 2499.00 (number, optional) - Customer price including VAT in sales channel currency.
+ + forcePrice: 849.00 (number, optional) - Forced price (if configured for the sales channel/product).
+ + currency: `CZK` (string, optional) - Currency code (ISO 4217).
+ + handlingTime: 2 (number, optional) - Handling time in days.
+ + offerData (ProductDetailedSummaryOfferData, optional) - Returned only when `extraFields=offerData` is specified.
+
+## ProductDetailedSummaryOfferData (object)
+ + offerId: `A-100245` (string, optional) - Marketplace/MPI offer identifier.
+ + title: `Ergo Office Chair Mesh Black` (string, optional) - Offer title. May be empty string.
+ + status (ProductDetailedSummaryOfferStatus, optional) - Offer status.
+
+## ProductDetailedSummaryOfferStatus (enum)
+ + `ACTIVATION_FAILED`
+ + `DELETION_FAILED`
+ + `DRAFT`
+ + `IMPORT_FAILED`
+ + `INTERNAL_ERROR`
+ + `MPI_ONLY`
+ + `PUBLISHED_LIVE`
+ + `PUBLISHED_TEST`
+ + `TO_BE_ACTIVATED_PROCESSING`
+ + `TO_BE_DELETED`
+ + `TO_BE_PUBLISHED`
+ + `UPDATE_FAILED`
+ + `UPDATE_PENDING`
+
+## OrderSimpleError(object)
+ + originalId: `10034238001` (string) - Id of the order as referenced in origin system.
+ + validationError: `Change to status CANCELLED is not allowed from status SHIPPED at original ID 324GHdf87.` (string) - any error encountered during the batch-update
+
+## OrderDetail (object)
+ + id: `52165815` (string) - Id of the order as referenced in your system (will not be present during first response).
+ + originalId: `10034238001` (string) - Id of the order as referenced in origin system.
+ + source (Source) - The system order was created in.
+ + status (OrderStatus) - Representation of actual order status.
+ + currency: `CZK` (string) - 3 character currency code as defined in ISO 4217. Valid for all prices in the order
+ + deliveryPrice: 119 (number) - The price customer was charged for delivery.
+ + paymentPrice: 39 (number) - The price customer was charged for selected payment method.
+ + cashOnDelivery: true (boolean) - If true, the order will be paied upon delivery.
+ + cashOnDeliveryValue: 518 (number) - The amount to be paid upon delivery.
+ + requestDeliveryDate: `2025-09-12` (string, optional) - The delivery date, customer has specified as requested delivery date (ISO 2014 YYYY-MM-DD)
+ + requestExpeditionDate: `2025-09-12` (string, optional) - The expedition date, eshop has specified as requested expedition date (ISO 2014 YYYY-MM-DD)
+ + suggestedExpeditionDate: `2025-09-11` (string, optional) - The suggested date so that ordered products arrive on schedule.  (ISO 2014 YYYY-MM-DD)
+ + suggestedExpeditionTimestamp: `2025-09-11T02:00:00+02:00` (string, optional) - The suggested date with time so that ordered products arrive on schedule. (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + actualDeliveryDate: `2025-09-12T08:20:52+02:00` (string) - Date and time when actual delivery to the customer happened   (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + items (array[Item])
+ + carrier (Carrier)
+ + shippingLabelsPrintMethod(ShippingLabelMethod) - Determines the way, Generate Shipping Labels method is used. Only present, if 'managedByPartner' flag in carrier is set to 'false'
+ + deliveryAddress (DeliveryAddress)
+ + dateCreated: `2025-09-11T13:01:34+02:00` (string) - The date and time the order was created in origin system  (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateConfirmed: `2025-09-11T13:01:54+02:00` (string) - The date and time the order was first updated to shipping status (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateProcessing: `2025-09-11T16:31:23+02:00` (string) - The date and time the order was changed to status shipping (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateShipped: `2025-09-11T16:31:23+02:00` (string) - The date and time the order was changed to status shipped (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateDelivered: `2025-09-12T09:54:47+02:00` (string) - The date and time the order was changed to status delivered (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateReturned: `2025-09-13T06:44:32+02:00` (string) - The date and time the order was changed to status returned (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateCancelled: `2025-09-14T10:19:14+02:00` (string) - The date and time the order was changed to status cancelled (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + cancelReason (CancelReason): 
+ + errorMessage: `Parsin error - dateConfirmed is not in valid format` - (string) - Error message from eshop API if any error occurs
+ + updateStatus (UpdateStatus) - Representation of actual order update status in the target sales channel system.
+ + orderDeliveryType (OrderDeliveryType) - Order delivery type 
+ + readyToReturn: false (boolean) - if true, order is ready to to be returned to you. This information may be passed to you by some sales channels to inform you, the order will be returned. 
+ + invoiceRequired: false (boolean) - if true, partner must take care of order invoicing.
+ + paymentId: `17f2cf0f-9e0c-11f0-82f0-99c3851aae49` (string) - The payment id from marketplace.
+ + shippingListUrl: `https://www.url.com/shippingListExample/6541651d1s616s1vds6` (string)
+ + serialNumbers (optional, array[SerialNumber])
+ + lastMileDeliveryAddress (DeliveryAddress)
+ + billingAddress (BillingAddress)
+ + packages(array[OrderPackage])
+ 
+## OrderDetailV2 (object)
+ + id: `52165815` (string) - Id of the order as referenced in your system (will not be present during first response).
+ + originalId: `10034238001` (string) - Id of the order as referenced in origin system.
+ + source (Source) - The system order was created in.
+ + status (OrderStatus) - Representation of actual order status.
+ + currency: `CZK` (string) - 3 character currency code as defined in ISO 4217. Valid for all prices in the order
+ + deliveryPrice: 119 (number) - The price customer was charged for delivery.
+ + paymentPrice: 39 (number) - The price customer was charged for selected payment method.
+ + cashOnDelivery: true (boolean) - If true, the order will be paied upon delivery.
+ + cashOnDeliveryValue: 518 (number) - The amount to be paid upon delivery.
+ + requestDeliveryDate: `2025-09-12` (string, optional) - The delivery date, customer has specified as requested delivery date (ISO 2014 YYYY-MM-DD)
+ + requestExpeditionDate: `2025-09-12` (string, optional) - The expedition date, eshop has specified as requested expedition date (ISO 2014 YYYY-MM-DD)
+ + suggestedExpeditionDate: `2025-09-11` (string, optional) - The suggested date so that ordered products arrive on schedule.  (ISO 2014 YYYY-MM-DD)
+ + suggestedExpeditionTimestamp: `2025-09-11T02:00:00+02:00` (string, optional) - The suggested date with time so that ordered products arrive on schedule. (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + actualDeliveryDate: `2025-09-12T08:20:52+02:00` (string) - Date and time when actual delivery to the customer happened   (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + items (array[ItemV2])
+ + carrier (Carrier)
+ + shippingLabelsPrintMethod(ShippingLabelMethod) - Determines the way, Generate Shipping Labels method is used. Only present, if 'managedByPartner' flag in carrier is set to 'false'
+ + deliveryAddress (DeliveryAddress)
+ + dateCreated: `2025-09-11T13:01:34+02:00` (string) - The date and time the order was created in origin system  (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateConfirmed: `2025-09-11T13:01:54+02:00` (string) - The date and time the order was first updated to shipping status (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateProcessing: `2025-09-11T16:31:23+02:00` (string) - The date and time the order was changed to status shipping (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateShipped: `2025-09-11T16:31:23+02:00` (string) - The date and time the order was changed to status shipped (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateDelivered: `2025-09-12T09:54:47+02:00` (string) - The date and time the order was changed to status delivered (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateReturned: `2025-09-13T06:44:32+02:00` (string) - The date and time the order was changed to status returned (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + dateCancelled: `2025-09-14T10:19:14+02:00` (string) - The date and time the order was changed to status cancelled (ISO 8601 formatyyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + cancelReason (CancelReason): 
+ + errorMessage: `Parsin error - dateConfirmed is not in valid format` - (string) - Error message from eshop API if any error occurs
+ + updateStatus (UpdateStatus) - Representation of actual order update status in the target sales channel system.
+ + orderDeliveryType (OrderDeliveryType) - Order delivery type 
+ + readyToReturn: false (boolean) - if true, order is ready to to be returned to you. This information may be passed to you by some sales channels to inform you, the order will be returned. 
+ + invoiceRequired: false (boolean) - if true, partner must take care of order invoicing.
+ + paymentId: `17f2cf0f-9e0c-11f0-82f0-99c3851aae49` (string) - The payment id from marketplace.
+ + shippingListUrl: `https://www.url.com/shippingListExample/6541651d1s616s1vds6` (string)
+ + serialNumbers (optional, array[SerialNumber])
+ + lastMileDeliveryAddress (DeliveryAddress)
+ + billingAddress (BillingAddress)
+ + packages(array[OrderPackage])
+ 
+## OrderPackage (object)                                                                                                                                                                                                                                                                                          
++ packageNumber: `PKG-001` (string) - Short package number, extracted from *packageFullNumber* by the rules of the assigned carrier, or provided directly by the e-shop.                                                                                                                                         
++ packageFullNumber: `PKG-FULL-001` (string) - Full package number, i.e. the complete carrier barcode (waybill number) returned by the carrier or the marketplace.   
+
+## SerialNumber (object)
+ + id: `1` (number) - If you provide *id*, you must also provide *orderLineId*.
+ + orderLineId: `98312` (number) - If you provide *orderLineId*, you must also provide *id*.
+ + itemId: `A25253FG` (string) - The id of the item from the items list.
+ + serialNumber: `PRT3020610485` (string)
+
+## OrderList (object)
+ + hasErrors: true (boolean) - True if there was any error during update found
+ + errors (array[OrderSimpleError])
+ + orders (array[OrderDetail])
+
+## OrderListV2 (object)
+ + hasErrors: true (boolean) - True if there was any error during update found
+ + errors (array[OrderSimpleError])
+ + orders (array[OrderDetailV2])
+
+## Carrier (object)
+ + managedByPartner: false (boolean) - True if you are responsible for carrier arrangements. False if carrier is managed by the sales channel.
+ + originalId: `125` (string) - Carrier reference in origin system.
+ + identification (Identification): `ULOZENKA` - Unified identification of carrier in MPI system
+ + type (DeliveryType) - Parcelshop or home delivery.
+ + parcelShop (ParcelShop)
+ + parcelTrackingNumber: `18978009` (number) - Parcel number in the tracking system of the carrier.
+ + parcelTrackingUrl: `https://tracking.com/status/cs_CZ/parcel/06505038808622` (string) - Link to parcel in parcel tracking system of carrier.
+ + note: `Linehaul` (string) - Individualized additional information obtained from a specific marketplace. For alza orders used to divide "R", "L", "Z" orders.
+
+## CarrierUpdate (object)
+ + parcelTrackingNumber: `18978009` (number) - Parcel number in the tracking system of the carrier.
+ + parcelTrackingUrl: `https://tracking.com/status/cs_CZ/parcel/06505038808622` (string) - Link to parcel in parcel tracking system of carrier.
+
+## DeliveryAddress (object)
+ + originalId: `1101030532` (string) - Id of the customer's delivery address as referenced in origin system.
+ + name: `John Newman` (string) - Delivery address name.
+ + company: `John's business` (string) - Delivery address company.
+ + phone: `+420703194744` (string) - Delivery address phone number.
+ + email: `jonh.newman@hmail.com` (string) - Delivery address email.
+ + addressLine1: `Under the Feeder 13/12` (string) - Delivery address line 1.
+ + addressLine2: `Flat No. 16` (string) - Delivery address line 2.
+ + city: `George Town` (string) - Delivery city.
+ + state: `US-ID` (string) - Delivery state code (ISO 3166-2).
+ + zip: `431 11` (string) - Delivery zip/postcode.
+ + country: `US` (string) - Delivery country code (ISO 3166-1 alpha-2)
+ + note: `Please knock, the bell is not working` (string) - Custom message from customer
+
+## BillingAddress (object)
+ + originalId: `1101030532` (string) - Id of the customer's billing address as referenced in origin system.
+ + name: `John Newman` (string) - Billing address name.
+ + company: `John's business` (string) - Billing address company.
+ + phone: `+420703194744` (string) - Billing address phone number.
+ + email: `jonh.newman@hmail.com` (string) - Billing address email.
+ + addressLine1: `Under the Feeder 13/12` (string) - Billing address line 1.
+ + addressLine2: `Flat No. 16` (string) - Billing address line 2.
+ + city: `George Town` (string) - Billing address city.
+ + state: `US-ID` (string) - Billing address state code (ISO 3166-2).
+ + zip: `431 11` (string) - Billing address zip/postcode.
+ + country: `US` (string) - Billing address country code (ISO 3166-1 alpha-2)
+ + note: `That's my invoice address!` (string) - Custom message from customer
+ + registrationNumber: `123456789` (string) - Company registration ID
+ + vatNumber: `CZ123456789` (string) - Company VAT registration ID
+
+## SalesChannelProductAvailability (object)
+ + salesChannelCode (SalesChannelCode) - Eshop code the price and availability are related to.
+ + onHand: 24 (number, optional) - Quantity of the product available for this sales channel. If used together with globalOnHand, seles channel specific value will be preferred.
+ + price: 560 (number, optional) - Customer price for the product in the currency of sales channel including VAT. Must be > 0.
+ + rrp: 700 (number, optional) - Recommended retail price. Common price for the product including VAT. Used by some sales channels to be compared with actual price and presented to customer as discount.
+ + vat: 21 (number, optional) - VAT tax rate for the product in percents. If not sent, vat of the product will remain unchanged
+ + handlingTime: 1 (number, optional) - how many days is required for product to be prepared for handover to last mile delivery carrier
+ + minimumPrice: 500 (number, optional) - Minimum product price which can be used for offer marketplace bidding (Currently working only for Kaufland)
+    
+## Item (object)
+ + id: `A25253FG` (string) - Product id from your system.
+ + originalId: `100001540106` (string) - Product id as listed in origin system.
+ + count: 3 (number) - Number of ordered products
+ + unitPrice: 200 (number) - Price of unit sold in order currency including VAT. This is a unit price from original order and might represent different price based on marketplace.
+ + customerUnitPrice: 200 (number) - Price for which the product was supposed to be sold to end customer including VAT. It represent price that was synced to marketplace before purchase. It may vary against real unit sell price because marketplaces may apply discounts or increase the final price in some cases.
+ + unitPriceWithoutCommission: 170 (number) -  Price of the unit without marketplace commission including VAT. This price (minus VAT) should be invoiced from marketplace to partner.
+ + vat: 21 (number) - VAT tax of the product.
+ + commission: 15 (number) - item commission in percent. Received for MALL orders, calculated for ALZA orders
+ 
+## ItemV2 (object)
+ + id: `A25253FG` (string) - Product id from your system.
+ + originalId: `100001540106` (string) - Product id as listed in origin system.
+ + ean: `8594001234567` (string) - Product EAN as listed in origin system.
+ + barCodes (array[string]) - Bar codes assigned to the item by the marketplace.
+ + count: 3 (number) - Number of ordered products
+ + sellerUnitPrice: `200` (number) - Price per unit the marketplace sold the item for. It is the base for the commission — the unit commission equals *sellerUnitPrice* minus *payoutUnitPrice*.                                                                                                                  
+ + customerUnitPrice: `150` (number) - Price per unit actually paid by the end customer, as reported by the marketplace.                                                                                                                                                                                          
+ + invoiceUnitPrice: `150` (number) - Price per unit used on the invoice for the item, i.e. the seller price reduced by the marketplace commission.                                                                                                                                                               
+ + payoutUnitPrice: `185` (number) - Price per unit the marketplace pays out to the seller.    
+ + vat: 21 (number) - VAT tax of the product.
+ + commission: 15 (number) - item commission in percent. Received for MALL orders, calculated for ALZA orders
+
+## PackageDetail (object)
+ + packageId: 1 (number, required) - package identifier for this request. Needs to be unique within single request
+ + One of
+    + properties
+        + weight: 4300 (number, required) - The weight of the package in grams.
+        + dimension1: 12 (number, optional) - First dimension of the package in cm.
+        + dimension2: 6 (number, optional) - Second dimension of the package in cm.
+        + dimension3: 8 (number, optional) - Third dimension of the package in cm.
+    + properties
+        + weight: 4300 (number, required) - The weight of the package in grams.
+        + volume: 576 (number, optional) - Volume of the package in cm3.
+
+## ParcelShop (object)
+ + identification (Identification): `ULOZENKA` - Identification of the parcel shop operator
+ + id: `86433` (string) - Id of the branch in the carriers system
+
+## ProductAvailability (object)
+ + productId: `A25253FG` (string, required) - Product id from your system.
+ + globalOnHand: 45 (number, nullable) - Stock of the product available for all the sales channels managed thru MPI. If used together with sales channel specific onHand, it will be applied to those saleschannels for which the onhand was not specified in this request.
+ + globalHandlingTime: 2 (number) - How many days is required for product to be prepared for handover to last mile delivery carrier for all the sales channels managed thru MPI. If used together with sales channel specific handlingTime, it will be applied to those sales channels for which the handlingTime was not specified in this request.
+ + b2bPrice (object, optional)
+     + value: 20 (number, optional) - Amount excluding VAT for the product’s B2B price, in the original currency.
+     + vat: 23 (number, optional) - Orignal VAT rate for the product’s B2B price.
+     + currency: `EUR` (string, optional) - Original currency for the product’s B2B price (ISO 4217).
+ + salesChannels (array[SalesChannelProductAvailability])
+
+## ProductAvailabilityRequest (object)
+ + products (array[ProductAvailability])
+
+## RequestShippingLabels (object)
+ + One of
+    + properties
+        + numberOfPackages: 4 (number, required) - The number of packages, the order will be shipped in. Corresponds to number of labels, that will be printed.
+    + properties
+        + packages(required)
+            + properties
+                 + packageId: 1 (number, required) - package identifier for this request. Needs to be unique within single request
+                 + One of
+                    + properties
+                        + weight: 4300 (number, required) - The weight of the package in grams.
+                        + dimension1: 12 (number, required) - First dimension of the package in cm.
+                        + dimension2: 6 (number, required) - Second dimension of the package in cm.
+                        + dimension3: 8 (number, required) - Third dimension of the package in cm.
+                        + items (required)
+                            + id: `A25253FG` (string, required) - Product id from your system.
+                            + count: 3 (number, required) - Count of this product id in the package.
+                    + properties
+                        + weight: 4300 (number, required) - The weight of the package in grams.
+                        + volume: 576 (number, required) - Volume of the package in cm3.
+                        + items (required)
+                            + id: `A25253FG` (string,required) - Product id from your system.
+                            + count: 3 (number, required) - Count of this product id in the package.
+                    + properties
+                        + size: `SM` (enum[string], required) - Simplified identification of package size.
+                            + members
+                                 + `XS` - weight up to 2kg, dimensions up to 20x30x20 cm
+                                 + `S` - weight  up to 5kg, dimensions up to 40x30x30 cm
+                                 + `SM` - weight  up to 10kg, dimensions up to 60x40x30 cm
+                                 + `M` - weight  up to 15kg, dimensions up to 70x40x40 cm
+                                 + `ML` - weight  up to 20kg, dimensions up to 80x40x50 cm
+                                 + `L`- weight  up to 31kg, dimensions up to 90x40x50 cm
+                                 + `XL` - weight  up to 50kg, dimensions up to 120x80x90 cm
+                                 + `XXL` - weight  up to 200kg, dimensions up to 120x160x120 cm
+                        + items (required)
+                            + id: `A25253FG` (string, required) - Product id from your system.
+                            + count: 3 (number, required) - Count of this product id in the package.                                
+
+## RequestShippingLabelItem (object)
+ + id: `A25253FG` (string) - Product id from your system.
+ + count: 3 (number) - Count of this product id in the package.
+
+## Order
++ orderSource (Source, required) - source of the order, as received in 'Get Orders' response
++ orderId: 1234577 (string, optional) - order id as referenced in your system. You can either use one, or both orders identifiers
++ originalOrderId: 453269498 (string, optional) - marketplace order id. You can either use one, or both orders identifiers
+
+## OrderLabelUrl (Order)
++ shippingLabelUrl: `https://salesconnect-test.s3.eu-central-1.amazonaws.com/0002_ALZA.CZ_DPD_4633426391.pdf` (string, required)
+
+## UpdateOrder (object)
+ + id: `324GHdf87` (string, required) - Id of the order as referenced in your system.
+ + originalId: `10034238001` (string, required) - Id of the order as referenced in origin system.
+ + status (OrderStatus, optional) - Representation of actual order status.
+ + cancelReason (CancelReason, optional) - Reason for cancelling order, use only when status equals CANCELLED. For compatibility reasons optional, but it will be mandatory.
+ + carrier (CarrierUpdate, optional)
+ + actualDeliveryDate: `2025-09-12T08:20:52+02:00` (string, optional) - Date and time when actual delivery to the customer happened   (ISO 8601 format yyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm). required with 'delivered' status
+ + firstAttemptAtDelivery: `2025-09-11T23:20:52+02:00` (string) - Date and time when there was unsuccessful attempt at first delivery (ISO 8601 format yyyy-MM-dd'T'hh:mm:ss[+|-]hh:mm)
+ + serialNumbers (optional, array[SerialNumber])
+
+## ResponseLabelsOrders (Order)
++ error (LabelResponseError)
+
+## UpdateOrderList (object)
+ + orders (array[UpdateOrder])
+
+## NotifyPartnerOrder (object)
+ + originalId: `10034238001` (string) - Id of the order as referenced in origin system.
+ + source: `MALL.CZ` (string) - The system order was created in.
+ + status (OrderStatus) - Representation of actual order status.
+
+
+## OrderClaim(object)
+ + id: 123 (number) - internal ID of claim, dont send when creating claim
+ + productId: `123465789` (string) - partner product code
+ + count: 2 (number) - number of claimed products
+ + returnReason (ClaimReturnReason) - reason for product claim
+ + returnReference: `abc123` (string) - eshop return reference
+
+## ClaimReturnReason (enum)
+ + `CUSTOMER_CANCEL` (string) - Order canceled by customer.
+ + `CUSTOMER_CLAIM` (string) - One or more products from order was claimed.
+
+## DeliveryType (enum)
+ + `PARCEL_SHOP`
+ + `PARCEL_BOX`
+ + `HOME_DELIVERY`
+
+## LabelItem (object)
+ + id: `A25253FG` (string) - Product id from your system.
+ + count: 3 (number) - Count of the product in this package.
+
+## LabelRequestStatus (enum)
+ + `NOT_STARTED` - Request processing did not start yet.
+ + `PROCESSING` - Request is still being processed.
+ + `COMPLETE` - Request has been completed without an error.
+ + `COMPLETE_WITH_ERRORS` - Request has been completed and some label requests has resulted in error.
+
+## LabelResponseError
+ + code: `ORDER_NOT_FOUND` (string) - code representation of the validation error
+ + message: `Order not found` (string) - description of the code
+
+## SalesChannelCode (enum)
+ + `MALLCZ`
+ + `MALLSK`
+ + `MALLHU`
+ + `MALLHR`
+ + `MALLPL`
+ + `MIMOVRSTE`
+ + `ALZACZ`
+ + `KAUFLANDCZ`
+ + `KAUFLANDSK`
+ + `KAUFLANDDE`
+ + `KAUFLANDAT`
+ + `KAUFLANDPL`
+ + `ALLEGROPL`
+ + `ALLEGROCZ`
+ + `ALLEGROSK`
+ + `HEUREKACZ`
+ + `HEUREKASK`
+ + `HEUREKAHU`
+
+## Source (enum)
+ + `MALL.HR`
+ + `MIMOVRSTE.COM`
+ + `ALZA.CZ`
+ + `KAUFLAND.CZ`
+ + `KAUFLAND.SK`
+ + `KAUFLAND.DE`
+ + `KAUFLAND.AT`
+ + `KAUFLAND.PL`
+ + `KAUFLAND.IT`
+ + `KAUFLAND.FR`
+ + `ALLEGRO.PL`
+ + `ALLEGRO.CZ`
+ + `ALLEGRO.SK`
+ + `ALLEGRO.HU`
+ + `HEUREKA.CZ`
+ + `HEUREKA.SK`
+ + `HEUREKA.HU`
+
+## OrderStatus (enum)
+ + `RESERVATION` (string) - Order created by customer, yet to be paid for or confirmed in case of CoD (cash on delivery).
+ + `OPEN` - Order is paid for or confirmed and can be processed by partner.
+ + `SHIPPING` - Status used as a conformation, partner has received the order and started order processing.
+ + `SHIPPED` - Order ready for dispatch, ready for courier collection. It triggers information that it will be delivered in following days. Final status for Alza orders that allows to invoice order to Alza.
+ + `DELIVERED` - Order delivered to customer or collected on pick up point. Used only in case of MALL Marketplace. Final status for Mall orders that allows to invoice order to Mall.
+ + `CANCELLED` - Order storno – possible to change by both customer or Partner.
+ + `RETURNED` - Order not delivered to customer, not picked up on pick up point. This status is set after the order is returned to partner. Final status for both Alza & Mall. In case of Alza it triggers credit note for order in this status.
+
+## CancelReason (enum)
+ + `OUT_OF_STOCK` - use this when you run out of stock.
+ + `DAMAGED_GOODS` - use this when goods are damaged.
+ + `WRONG_PRICE` - use when it was buyed for incorrect price.
+ + `EXTERNAL_SUPPLIER_FAILURE` - use this when there is a problem with external suplier.
+ + `MARKETPLACE_REQUEST` - use this when marketplace requests cancellation.
+ + `OTHER` - for any other reason not specified with previous values.
+
+## OrderDeliveryType (enum)
+ + `B2C`
+ + `B2B`
+ + `Branch`
+ + `ParcelShop`
+
+## UpdateStatus (enum)
+ + `UPDATE_PENDING`
+ + `UP_TO_DATE`
+
+## ShippingLabelMethod (enum)
+ + `SIMPLE`
+ + `DETAILED`
+
+## Identification (enum)
+ + `123_KURIER` - 123 Kurier
+ + `ALLEGRO` - Allegro
+ + `ALZA` - Alza
+ + `AMBRO_EXPRESS` - Ambro express
+ + `AT_POST` - At post
+ + `AUSTRIAN_POST_EXPRESS` - Austrian post express
+ + `B2C_EUROPE` - B2C Europe
+ + `CAINIAO` - Cainiao
+ + `CHINA_EMS` - China EMS
+ + `CHINA_POST` - China post
+ + `CHUKOU1` - Chukou1
+ + `CNE_EXPRESS` - CNE Express
+ + `COURIER` - Courier - Separate contract with carrier on Allegro
+ + `CZ_POST` - Czech Post
+ + `DACHSER` - Dachser
+ + `DB_SCHENKER` - DB Schenker
+ + `DEUTSCHE_POST` - Deutsche post
+ + `DHL` - DHL
+ + `DPD` - DPD
+ + `DSV` - DSV
+ + `DTS` - DTS
+ + `ESHIPPING_GLOBAL` - Eshipping global
+ + `EXELOT` - Exelot
+ + `EXPRESS_ONE` - Express one
+ + `FEDEX` - Fedex
+ + `FLYT_EXPRESS` - Flyt express
+ + `FOFR` - FOFR
+ + `GEBRUDER_WEISS` - Gebrüder Weiss
+ + `GEIS_CARGO` - Geis Cargo
+ + `GEIS_PARCEL` - Geis Parcel
+ + `GLS` - GLS
+ + `GO` - GO
+ + `GONIEC` - Goniec
+ + `HELICAR` - Helicar
+ + `HERMES` - Hermes
+ + `HU_POST` - Hungarian Post
+ + `INPOST` - InPost
+ + `JAPAN_POST` - Japan post
+ + `KARGOM_KOLAY` - Kargom kolay
+ + `KN` - KN
+ + `LA_POSTE` - La poste
+ + `LATVIA_POST` - Latvia post
+ + `LITHUANIAN_POST` - Lithuanian post
+ + `MEEST` - Meest
+ + `MESSENGER` - Messanger
+ + `NA_DZISIAJ` - Na dzisiaj
+ + `NAJBERT` - Kurýrní služba Najbert
+ + `NO_LIMIT` - No limit
+ + `ONE` - ONE
+ + `ORLEN` - Orlen
+ + `PACKETA` - Zásilkovna
+ + `PATRON` - Patron
+ + `PEKAES` - Pekaes
+ + `PICKPACK` - Pickpack
+ + `POCZTA_POLSKA` - Poczta polska
+ + `POCZTEX` - Pocztex
+ + `POST_NL` - Post NL
+ + `POSTNORD` - Postnord
+ + `PPL` - PPL
+ + `PTS` - PTS
+ + `QDL` - QDL
+ + `RABEN` - Raben Group
+ + `RHENUS` - Rhenus
+ + `SF_EXPRESS` - SF Express
+ + `SFC` - SFC
+ + `SHIPTER` - Shipter
+ + `SI_POST` - Slovenia Post
+ + `SK_POST` - Slovak Post
+ + `SKYNET` - Sky Net
+ + `SUUS` - Suus
+ + `SUNYOU` - Sunyou
+ + `TEST_CARRIER` - Carrier for testing purposes (used in MALL integration)
+ + `TNT` - TNT
+ + `TOPTRANS` - TOPTRANS
+ + `TRANSPORTATION_BY_ARRANGEMENT` - Transportation by arrangement (Option used by allegro)
+ + `ULOZENKA` - Uloženka
+ + `UKR_POSHTA` - UKR Poshta
+ + `UPS` - UPD
+ + `WANB_EXPRESS` - Wanb express
+ + `WEDO` - WE|DO
+ + `X_PRESS_COURIERS` - X press couriers
+ + `YANWEN` - Yanwen
+ + `YUN_EXPRESS` - Yun express
+ + `ZSK` - Zavolejsikurýra
